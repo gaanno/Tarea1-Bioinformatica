@@ -1,3 +1,5 @@
 *.fasta
 .ipynb_checkpoints
 obsolete
+__pycache__
+.vscode
