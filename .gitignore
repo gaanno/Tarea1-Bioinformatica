@@ -3,3 +3,4 @@
 obsolete
 __pycache__
 .vscode
+*.ipynb
