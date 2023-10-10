@@ -1,19 +1,32 @@
-# .\clustalo.exe --in prueba -t Protein --infmt fa --outfmt=fasta -o resultado.txt --force --threads 12
 from sequence import Sequence
-from exec_clustal import Clustal
+import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-file', type=str, help='File container of the accession numbers')
+
+    if not (file := parser.parse_args().file) or file is None:
+        parser.print_help()
+        exit()
+        
+    return parser.parse_args()
+
+def load_accession_numbers(file, seq):
+    with open(file) as f:
+        #return [line.strip() for line in f.readlines()]
+        for line in f.readlines():
+            acc, type = line.split(' ')
+            seq.add_sequence(database=type, accession_number=acc)
+
+def main():
+    file_format = "fasta"
+    parser = parse_args()
+    seq = Sequence(file_format)
+
+    load_accession_numbers(parser.file, seq)
+
+    print(seq.get_all_sequences())
 
 
 if __name__ == '__main__':
-    
-    
-    file_format = "fasta"
-
-    seq = Sequence(file_format)
-    clustal = Clustal(seq.get_output_filename(), file_format)
-
-    seq.add_sequence(database="protein", accession_number="BAA20512.1")
-    seq.add_sequence(database="protein", accession_number="CAA23748.1")
-    seq.add_sequence(database="protein", accession_number="CAA24095.1")
-
-    seq.export_all()
-    clustal.run()
+    main()
