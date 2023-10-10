@@ -1,7 +1,11 @@
+#extensiones db
+*.gb
 *.fasta
+*.fa
+
 .ipynb_checkpoints
 obsolete
 __pycache__
 .vscode
-*.ipynb
 sequence.ipynb
+*.ipynb
