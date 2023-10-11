@@ -38,10 +38,12 @@ class Sequence(object):
                     SeqIO.write(seq, output_handle, self.file_format)
 
     def do_alignment(self, type):
+        print(f"Doing {type} alignment")
         aligner = PairwiseAligner()
         aligner.mode = type
 
         for pair in self._sequence_pairs:
+            print(f"Aligning {pair=} {type=}")
             alignment = aligner.align(*pair)
             ids = [seq.id for seq in pair]
             if type == 'global':

@@ -1,5 +1,6 @@
 from sequence import Sequence
 import argparse
+import re
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -16,8 +17,8 @@ def parse_args():
 def load_accession_numbers(file, seq: Sequence):
     with open(file) as f:
         for line in f.readlines():
-            seq1, seq2 = line.split(' ')
-            seq.add_sequence([seq1, seq2])
+            split = re.split(r'\s+', line)
+            seq.add_sequence([split[0], split[1]])
 
 def main():
     parser = parse_args()
