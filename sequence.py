@@ -3,12 +3,12 @@ from Bio import SeqIO
 from Bio.Align import PairwiseAligner
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
+from Bio.Align import substitution_matrices
+
 
 class Sequence(object):
     _OUTPUT_FILENAME = "all_sequences"
     _sequence_pairs = []
-    _global_alignments = []
-    _local_alignments = []
 
     def __init__(self, database, file_format="gb", email="") -> None:
         """Constructor"""
@@ -27,9 +27,8 @@ class Sequence(object):
         """
         print(f"Getting sequences {seqs}")
         data = self._get_data(accession_number=seqs)
-        print("Adding sequence")
         self._sequence_pairs.append(data)
-        
+
     def export(self) -> None:
         """Exporta todas las secuencias"""
         for pair in self._sequence_pairs:
@@ -37,54 +36,41 @@ class Sequence(object):
                 with open(f"{seq.id}.{self.file_format}", "w") as output_handle:
                     SeqIO.write(seq, output_handle, self.file_format)
 
-    def do_alignment(self, type):
-        print(f"Doing {type} alignment")
-        aligner = PairwiseAligner()
-        aligner.mode = type
+    def do_alignment(self):
 
         for pair in self._sequence_pairs:
-            print(f"Aligning {pair=} {type=}")
-            alignment = aligner.align(*pair)
-            ids = [seq.id for seq in pair]
-            if type == 'global':
-                alignment = pairwise2.align.globalxx(pair[0].seq, pair[1].seq)
-                self._global_alignments.append([ids, alignment])
+            alignment = pairwise2.align.globalxx(pair[0].seq, pair[1].seq)
+            score, identity = self._get_resume(alignment)
+            print(
+                f"Aligning {pair[0].id, pair[1].id} type:global {score=} {identity=}")
 
-            elif type == 'local':
-                alignment = pairwise2.align.localxx(pair[0].seq, pair[1].seq)
-                self._local_alignments.append([ids, alignment])
+            alignment = pairwise2.align.localxx(pair[0].seq, pair[1].seq)
+            score, identity = self._get_resume(alignment)
+            print(
+                f"Aligning {pair[0].id, pair[1].id} type:local {score=} {identity=}\n")
 
     def print_sequences(self) -> None:
         """Imprime todas las secuencias agregadas"""
         for pair in self._sequence_pairs:
             for sequence in pair:
                 print(sequence)
-                #print(f"{sequence.id} {sequence.seq}")
+                # print(f"{sequence.id} {sequence.seq}")
 
-    def print_alignments(self, type) -> None:
-        """Imprime todos los alineamientos globales"""
-        print(f"--- {type} ---")
-        if type == 'global':
-            for alignment in self._global_alignments:
-                print(f"Secuencias: {alignment[0]}\n{format_alignment(*alignment[1][0])}")
-
-        if type == 'local':
-            for alignment in self._local_alignments:
-                print(f"Secuencias: {alignment[0]}\n{format_alignment(*alignment[1][0])}")
-
-    def show_data(self):
-        # muestra score, porcentaje de identidad y de similitud
-        print("--- global ---")
-        for gl in self._global_alignments:
-            identity = (gl[1][0].score/gl[1][0].end)*100
+   
+    def matrices(self):
+        for pair in self._sequence_pairs:
+            print(f"Aligning {pair[0].id, pair[1].id} for BLOSUM62 and PAM250")
+            alignment = pairwise2.align.globaldx(
+                pair[0].seq, pair[1].seq, substitution_matrices.load("BLOSUM62"))
+            score, identity = self._get_resume(alignment)
             print(
-                f"Elementos: {gl[0]}\nscore: {gl[1][0].score}\nIdentidad: {identity}%", end="\n\n")
+                f"Blosum62 Aligning {pair[0].id, pair[1].id} score {score} identity {identity}")
 
-        print("--- local ---")
-        for lc in self._local_alignments:
-            identity = (lc[1][0].score/lc[1][0].end)*100
+            alignment = pairwise2.align.globaldx(
+                pair[0].seq, pair[1].seq, substitution_matrices.load("PAM250"))
+            score, identity = self._get_resume(alignment)
             print(
-                f"Elementos: {lc[0]}\nscore: {lc[1][0].score}\nIdentidad: {identity}%", end="\n\n")
+                f"PAM250 Aligning {pair[0].id, pair[1].id} score {score} identity {identity}\n")
 
     def _get_data(self, accession_number) -> str:
         """
@@ -98,3 +84,8 @@ class Sequence(object):
         with Entrez.efetch(db=self.database, id=accession_number,
                            rettype=self.file_format) as handle:
             return [handle for handle in SeqIO.parse(handle, self.file_format)]
+
+    def _get_resume(self,alignment) -> tuple:
+        score = str(format_alignment(*alignment[0])).count("|")
+        identity = (score/alignment[0].end)*100
+        return score, identity
