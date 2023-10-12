@@ -33,11 +33,11 @@ def main():
 
     load_accession_numbers(parser.file, seq)
 
-    # seq.print_sequences()
-    seq.export()
+    seq.print_sequences()
+    #seq.export()
 
     if parser.type == "nucleotide":
-        seq.matrices()
+        seq.do_alignment_matrices()
     else:
         seq.do_alignment()
 
