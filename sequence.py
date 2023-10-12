@@ -18,6 +18,7 @@ class Sequence(object):
         Entrez.email = email
         self.database = database
         self.file_format = file_format
+        print(f"gap: {self.gap}, match: {self.match}, mismatch: {self.mismatch}")
 
     def add_sequence(self, seqs: list) -> None:
         """
@@ -41,9 +42,18 @@ class Sequence(object):
 
     def do_alignment(self):
         for pair in self._sequence_pairs:
-            # alignment = pairwise2.align.globalxx(pair[0].seq, pair[1].seq)
-            self._global_alignment(pair[0], pair[1])
-            self._local_alignment(pair[0], pair[1])
+            print(f"{pair[0].description=}\n{pair[1].description=}")
+            self._aligner(pair[0], pair[1], "global")
+            self._aligner(pair[0], pair[1], "local")
+            print()
+
+    def do_alignment_matrices(self):
+        for pair in self._sequence_pairs:
+            print(f"{pair[0].description=}\n{pair[1].description=}")
+            self._alignment_sustitution(pair[0], pair[1], "BLOSUM62")
+            self._alignment_sustitution(pair[0], pair[1], "PAM250")
+            self._aligner(pair[0], pair[1], "global")
+            self._aligner(pair[0], pair[1], "local")
             print()
 
     def print_sequences(self) -> None:
@@ -51,14 +61,6 @@ class Sequence(object):
         for pair in self._sequence_pairs:
             for sequence in pair:
                 print(sequence)
-
-    def do_alignment_matrices(self):
-        for pair in self._sequence_pairs:
-            self._alignment_blosum62(pair[0], pair[1])
-            self._alignment_pam250(pair[0], pair[1])
-            self._global_alignment(pair[0], pair[1])
-            self._local_alignment(pair[0], pair[1])
-            print()
 
     def _get_data(self, accession_number) -> str:
         """
@@ -73,27 +75,28 @@ class Sequence(object):
                            rettype=self.file_format) as handle:
             return [handle for handle in SeqIO.parse(handle, self.file_format)]
 
-    def _alignment_pam250(self, seq1, seq2):
-        alignment = pairwise2.align.globaldx(
-            seq1.seq, seq2.seq, substitution_matrices.load("PAM250"))
-        self._get_resume(alignment, seq1.id, seq2.id, "PAM250")
+    def _alignment_sustitution(self, seq1, seq2, type):
+        aligner = PairwiseAligner()
+        aligner.substitution_matrix = substitution_matrices.load(type)
+        alignment = aligner.align(seq1.seq, seq2.seq)
+        self._get_resume(alignment, seq1.id, seq2.id, type)
+        
 
-    def _alignment_blosum62(self, seq1, seq2):
-        alignment = pairwise2.align.globaldx(
-            seq1.seq, seq2.seq, substitution_matrices.load("BLOSUM62"))
-        self._get_resume(alignment, seq1.id, seq2.id, "blosum62")
-
-    def _global_alignment(self, seq1, seq2):
-        alignment = pairwise2.align.globalms(
-            seq1, seq2, self.match, self.mismatch, self.gap, self.gap)
-        self._get_resume(alignment, seq1.id, seq2.id, "global")
-
-    def _local_alignment(self, seq1, seq2):
-        alignment = pairwise2.align.localms(
-            seq1, seq2, self.match, self.mismatch, self.gap, self.gap)
-        self._get_resume(alignment, seq1.id, seq2.id, "local")
+    def _aligner(self, seq1, seq2, type):
+        aligner = PairwiseAligner()
+        aligner.mode = type
+        aligner.match_score = self.match
+        aligner.mismatch_score = self.mismatch
+        aligner.open_gap_score = self.gap
+        aligner.extend_gap_score = self.gap
+        alignment = aligner.align(seq1.seq, seq2.seq)
+        self._get_resume(alignment, seq1.id, seq2.id, type)
+     
 
     def _get_resume(self, alignment, seq1, seq2, type) -> tuple:
-        score = str(format_alignment(*alignment[0])).count("|")
-        identity = (score/alignment[0].end)*100
-        print(f"Sequences: {seq1, seq2} {type=} {score=} {identity=}%")
+        st = str(alignment[0]).count("|")
+        smax = max([*alignment[0].coordinates[0],
+                   *alignment[0].coordinates[1]])
+        identity = (st/smax)*100
+        print(
+            f"Sequences: {seq1, seq2} {type=} score: {alignment.score} {identity=}%")
