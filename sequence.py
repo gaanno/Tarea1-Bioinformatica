@@ -1,8 +1,6 @@
 from Bio import Entrez
 from Bio import SeqIO
 from Bio.Align import PairwiseAligner
-from Bio import pairwise2
-from Bio.pairwise2 import format_alignment
 from Bio.Align import substitution_matrices
 
 
@@ -18,7 +16,7 @@ class Sequence(object):
         Entrez.email = email
         self.database = database
         self.file_format = file_format
-        print(f"gap: {self.gap}, match: {self.match}, mismatch: {self.mismatch}")
+        print(f"gap: {self.gap}, match: {self.match}, mismatch: {self.mismatch}\n")
 
     def add_sequence(self, seqs: list) -> None:
         """
@@ -80,7 +78,6 @@ class Sequence(object):
         aligner.substitution_matrix = substitution_matrices.load(type)
         alignment = aligner.align(seq1.seq, seq2.seq)
         self._get_resume(alignment, seq1.id, seq2.id, type)
-        
 
     def _aligner(self, seq1, seq2, type):
         aligner = PairwiseAligner()
@@ -91,7 +88,6 @@ class Sequence(object):
         aligner.extend_gap_score = self.gap
         alignment = aligner.align(seq1.seq, seq2.seq)
         self._get_resume(alignment, seq1.id, seq2.id, type)
-     
 
     def _get_resume(self, alignment, seq1, seq2, type) -> tuple:
         st = str(alignment[0]).count("|")
